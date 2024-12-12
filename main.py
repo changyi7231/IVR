@@ -18,8 +18,8 @@ def main(args):
         device = torch.device(args.device)
         if args.save_path is None:
             args.save_path = os.path.join('save', time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()))
-        # if not os.path.isdir(args.save_path):
-        #    os.makedirs(args.save_path)
+        if not os.path.isdir(args.save_path):
+            os.makedirs(args.save_path)
         dataset = KnowledgeGraph(args.data_path, args.dataset)
         model = Model(dataset.num_entities, dataset.num_relations, args.model_name, args.part, args.dimension, args.regularization, args.alpha).to(device)
         optimizer = torch.optim.Adagrad(model.parameters(), lr=args.lr)
@@ -42,7 +42,6 @@ def main(args):
 
 def train(args, device, dataset, model, optimizer):
     best_mrr, best_epoch = 0.0, 0
-    stop = 0
     data_loader = DataLoader(KGDataset(dataset.train_data), batch_size=args.batch_size, shuffle=True,
                              num_workers=args.num_workers, collate_fn=KGDataset.test_collate_fn)
     for epoch in range(1, args.epochs + 1):
@@ -64,15 +63,10 @@ def train(args, device, dataset, model, optimizer):
         print('\n[train: epoch {}], loss: {}, time: {}s'.format(epoch, total_loss, t1 - t0))
         if not (epoch % args.valid_interval):
             metrics = test(args, device, dataset, model, epoch, is_test=False)
-            _ = test(args, device, dataset, model, epoch, is_test=True)
+            # _ = test(args, device, dataset, model, epoch, is_test=True)
             if metrics['mrr'] > best_mrr:
                 best_mrr, best_epoch = metrics['mrr'], epoch
-                stop = 0
-                # save(args.save_path, epoch, model)
-            else:
-                stop += 1
-        if stop >= 20:
-            break
+                save(args.save_path, epoch, model)
     print('best mrr: {} at epoch {}'.format(best_mrr, best_epoch))
 
 
@@ -131,7 +125,7 @@ if __name__ == '__main__':
     parser.add_argument('--valid_interval', type=int, default=1, help='number of epochs to valid')
 
     parser.add_argument('--part', type=int, default=2, help='number of parts')
-    parser.add_argument('--dimension', type=int, default=1000, help='number of dimension of each part')
+    parser.add_argument('--dimension', type=int, default=2000, help='number of dimension of each part')
 
     parser.add_argument('--epochs', type=int, default=100, help='epochs')
     parser.add_argument('--batch_size', type=int, default=100, help='batch size')
