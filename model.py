@@ -12,7 +12,7 @@ class Model(nn.Module):
         self.regularization = regularization
         self.p = 2
         self.q = alpha / 2
-        bound = 1e-2
+        bound = 0.1
 
         if model_name == 'CP':
             assert self.part == 1
